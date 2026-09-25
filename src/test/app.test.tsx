@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from '../App';
@@ -7,6 +7,28 @@ import { demoState } from '../api/demoApi';
 import type { ChatApi } from '../types';
 
 describe('Пользовательские сценарии', () => {
+  it('показывает демоответ после отправленного сообщения в пределах одной секунды', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-25T08:13:05.100Z'));
+    try {
+      render(<App />);
+      fireEvent.click(screen.getByRole('button', { name: /Открыть демо/ }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'Сообщение' }), {
+        target: { value: 'Проверка порядка' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Отправить сообщение' }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2500);
+      });
+      const log = within(screen.getByRole('log'));
+      const sent = log.getByText('Проверка порядка');
+      const reply = log.getByText(/Сообщение получил!/);
+      expect(sent.compareDocumentPosition(reply) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
+  });
   it('демо работает без сети, отправляет текст и показывает автоответ', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

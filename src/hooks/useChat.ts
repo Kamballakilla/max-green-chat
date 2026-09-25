@@ -60,7 +60,8 @@ export function useChat(api: ChatApi, initialState: ChatState) {
         id: localId,
         chatId,
         text: text.trim(),
-        timestamp: Date.now(),
+        // У входящих событий точность до секунды; используем ту же точность для сортировки.
+        timestamp: Math.floor(Date.now() / 1000) * 1000,
         direction: 'outgoing',
         status: 'sending',
       },
